@@ -17,12 +17,21 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
 }
 
+def getGitHash = { ->
+	def stdout = new ByteArrayOutputStream()
+	exec {
+		commandLine 'git', 'rev-parse', '--short', 'HEAD'
+		standardOutput = stdout
+	}
+	return stdout.toString().trim()
+}
+
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
 			groupId = 'com.github.compscidr'
 			artifactId = 'tun-io'
-			version = '1.0.0'
+			version = '1.0.0-' + getGitHash()
 
 			from components.java
 		}
