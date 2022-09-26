@@ -69,6 +69,7 @@ public class TunDevice implements AutoCloseable {
 		channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		loopThread = new Thread(this::loop);
 		loopThread.start();
+		inbuf.order(ByteOrder.BIG_ENDIAN);
 	}
 
 	/**
@@ -238,7 +239,7 @@ public class TunDevice implements AutoCloseable {
 					continue;
 				}
 				System.out.println("Got a good packet");
-				recv.order(ByteOrder.BIG_ENDIAN);
+				//recv.order(ByteOrder.BIG_ENDIAN);
 				return new Packet(recv);
 			}
 		} catch (LastErrorException ex) {
@@ -305,7 +306,7 @@ public class TunDevice implements AutoCloseable {
 					// slice without the header but with the full capacity allowing the later use of the complete buffer
 					recv.position(headerSize);
 					ByteBuffer packetBuf = recv.slice();
-					packetBuf.order(ByteOrder.BIG_ENDIAN);  // default to network byte order
+					//packetBuf.order(ByteOrder.BIG_ENDIAN);  // default to network byte order
 					packetBuf.limit(recv.limit() - headerSize);
 					return new Packet(packetBuf);
 				}
