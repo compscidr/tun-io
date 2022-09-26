@@ -128,7 +128,7 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	private void try_write() throws IOException {
-		if (!packetQueue.isEmpty()) {
+		if (packetQueue.isEmpty()) {
 			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 			return;
 		}
