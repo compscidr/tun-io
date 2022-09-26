@@ -132,7 +132,7 @@ public class TunDevice implements AutoCloseable {
 			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 			return;
 		}
-		System.out.println("Waiting for libc write");
+		System.out.println("Waiting for libc write, have queue size: " + packetQueue.size());
 		try {
 			ByteBuffer packet = packetQueue.take();
 			LibC.write(fd, packet, new NativeLong(packet.remaining()));
@@ -180,7 +180,7 @@ public class TunDevice implements AutoCloseable {
 					if (key.isReadable()) {
 						try_read();
 					}
-					else if(key.isWritable()) {
+					if(key.isWritable()) {
 						try_write();
 					}
 				}
@@ -197,6 +197,8 @@ public class TunDevice implements AutoCloseable {
 	@Override
 	public void close() throws IOException, InterruptedException {
 		isOpen = false;
+		channel.shutdownInput();
+		channel.shutdownOutput();
 		selector.close();
 		try {
 			LibC.close(fd);
