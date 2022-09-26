@@ -170,6 +170,7 @@ public class TunDevice implements AutoCloseable {
 		packet.order(ByteOrder.BIG_ENDIAN);
 		packet.put(inbuf);
 		packet.rewind();
+		inbuf.clear();
 		availableForRead = 0;
 		return packet;
 	}
