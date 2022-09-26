@@ -211,14 +211,18 @@ public class TunDevice implements AutoCloseable {
 			try {
 				while (isOpen) {
 					ByteBuffer inbuf = ByteBuffer.allocate(headerSize + readMtu.intValue());
+					System.out.println("Waiting for libc read");
 					int n = LibC.read(fd, inbuf, readMtu);
 					if (n < 4) {
+						System.out.println("Didn't get >= 4 bytes, skipping");
 						continue;
 					}
 					int version = Byte.toUnsignedInt(inbuf.get(headerSize)) >> 4;
 					if (version != limitIpVersion && limitIpVersion != 0) {
+						System.out.println("Didn't get expected IP version, skipping");
 						continue;
 					}
+					System.out.println("Got a good packet");
 					// slice without the header but with the full capacity allowing the later use of the complete buffer
 					inbuf.position(headerSize);
 					ByteBuffer packetBuf = inbuf.slice();
