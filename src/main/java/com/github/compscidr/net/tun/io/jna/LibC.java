@@ -34,5 +34,9 @@ public class LibC {
 
 	public static native int getsockopt(int sockfd, int level, int optname, Structure opt, IntByReference optlen) throws LastErrorException;
 
+	public static native int setsockopt(int sockfd, int level, int optname, Structure opt, int optlen) throws LastErrorException;
+
 	public static native int ioctl(int fd, NativeLong cmd, Structure p) throws LastErrorException;
+
+	public static native int fnctl(int fd, int cmd, int arg) throws LastErrorException;
 }
