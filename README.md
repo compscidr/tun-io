@@ -1,12 +1,18 @@
 # tun-io  
-[![License](https://img.shields.io/github/license/isotes/tun-io)](LICENSE)  
-[![](https://jitpack.io/v/compscidr/tun-io.svg)](https://jitpack.io/#compscidr/tun-io)
-[![Javadoc](https://img.shields.io/badge/docs-javadoc-blue)](https://isotes.github.io/javadoc/tun-io-1.0.0/)
+[![License](https://img.shields.io/github/license/isotes/tun-io)](LICENSE)&nbsp;
+[![](https://jitpack.io/v/compscidr/tun-io.svg)](https://jitpack.io/#compscidr/tun-io)&nbsp;
+[![Javadoc](https://img.shields.io/badge/docs-javadoc-blue)](https://isotes.github.io/javadoc/tun-io-1.0.0/)&nbsp;
+
 JNA based access to TUN devices on Linux and macOS.
 
 ## Use
 ```
-implementation 'com.github.compscidr:tun-io:<tag>'
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+dependencies {
+    implementation 'com.github.compscidr:tun-io:<tag>'
+}
 ```
 
 ## API
