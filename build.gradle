@@ -1,88 +1,16 @@
 plugins {
-	id 'java'
-	id 'maven-publish'
+	id 'java-library'
 }
-
-group = 'com.github.compscidr'
-version = '1.1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
 repositories {
 	mavenCentral()
-	maven { url "https://jitpack.io"  }
 }
 
 dependencies {
 	implementation 'net.java.dev.jna:jna:5.3.1'
-	implementation 'com.github.jitpack:gradle-simple:1.0'
 	testImplementation 'org.zeroturnaround:zt-exec:1.10'
 	testImplementation 'org.slf4j:slf4j-jdk14:1.7.26'
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
-}
-
-javadoc {
-	source = sourceSets.main.allJava
-	excludes = ['io/github/isotes/net/tun/io/jna/**']
-	options.with {
-		links 'https://docs.oracle.com/javase/8/docs/api/', 'https://java-native-access.github.io/jna/4.2.1/'
-	}
-	if(JavaVersion.current().isJava9Compatible()) {
-		options.addBooleanOption('html5', true)
-		options.addStringOption('source', '1.8')
-	}
-}
-
-task sourcesJar(type: Jar) {
-	from sourceSets.main.allJava
-	archiveClassifier = 'sources'
-}
-
-task javadocJar(type: Jar) {
-	from javadoc
-	archiveClassifier = 'javadoc'
-}
-
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-			artifact sourcesJar
-			artifact javadocJar
-			versionMapping {
-				usage('java-api') {
-					fromResolutionOf('runtimeClasspath')
-				}
-				usage('java-runtime') {
-					fromResolutionResult()
-				}
-			}
-			pom {
-				name = 'tun-io'
-				description = 'JNA based access to TUN devices on Linux and macOS'
-				url = 'https://github.com/isotes/tun-io'
-				licenses {
-					license {
-						name = 'The Apache License, Version 2.0'
-						url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-					}
-				}
-				developers {
-					developer {
-						name = 'Robert Sauter'
-						email = 'isotes@gmail.com'
-					}
-					developer {
-						name = 'Jason Ernst'
-						email = 'ernstjason1@gmail.com'
-					}
-				}
-				scm {
-					connection = 'scm:git@github.com:compscidr/tun-io.git'
-					developerConnection = 'scm:svn:git@github.com:compscidr/tun-io.git'
-					url = 'https://github.com/compscidr/tun-io'
-				}
-			}
-		}
-	}
 }
