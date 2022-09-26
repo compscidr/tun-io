@@ -167,6 +167,7 @@ public class TunDevice implements AutoCloseable {
 			Thread.sleep(10);
 		}
 		ByteBuffer packet = ByteBuffer.allocate(availableForRead);
+		packet.order(ByteOrder.BIG_ENDIAN);
 		packet.put(inbuf);
 		packet.rewind();
 		availableForRead = 0;
