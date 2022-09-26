@@ -128,6 +128,10 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	private void try_write() throws IOException {
+		if (!packetQueue.isEmpty()) {
+			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+			return;
+		}
 		System.out.println("Waiting for libc write");
 		try {
 			ByteBuffer packet = packetQueue.take();
@@ -142,7 +146,6 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	private void try_read() throws IOException {
-
 		System.out.println("Waiting for libc read");
 		if (availableForRead == 0) {
 			availableForRead = LibC.read(fd, inbuf, readMtu);
@@ -151,6 +154,7 @@ public class TunDevice implements AutoCloseable {
 			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		} else {
 			System.out.println("Waiting for someone to read the existing buffer, not reading now");
+			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		}
 	}
 
