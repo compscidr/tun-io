@@ -127,6 +127,7 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	private void try_write() throws IOException {
+		System.out.println("Waiting for libc write");
 		try {
 			ByteBuffer packet = packetQueue.take();
 			LibC.write(fd, packet, new NativeLong(packet.remaining()));
@@ -135,6 +136,7 @@ public class TunDevice implements AutoCloseable {
 		} catch (LastErrorException ex) {
 			System.out.println("Writing to TUN device " + getName() + " failed: " + ex.getMessage() + " " + ex);
 		}
+		System.out.println("libc write done");
 	}
 
 	private void try_read() throws IOException {
@@ -142,11 +144,17 @@ public class TunDevice implements AutoCloseable {
 		if (availableForRead == 0) {
 			availableForRead = LibC.read(fd, inbuf, readMtu);
 			inbuf.limit(availableForRead);
+			System.out.println("libc read done");
+		} else {
+			System.out.println("Waiting for someone to read the existing buffer, not reading now");
 		}
 	}
 
-	private static ByteBuffer read_blocking() throws InterruptedException {
+	private static ByteBuffer read_blocking() throws InterruptedException, IOException {
 		while (availableForRead == 0) {
+			if (!isOpen) {
+				throw new IOException("TUN device is closed");
+			}
 			Thread.sleep(10);
 		}
 		ByteBuffer packet = ByteBuffer.allocate(availableForRead);
