@@ -197,11 +197,11 @@ public class TunDevice implements AutoCloseable {
 	@Override
 	public void close() throws IOException, InterruptedException {
 		isOpen = false;
-		channel.shutdownInput();
-		channel.shutdownOutput();
 		selector.close();
 		try {
+			System.out.println("Trying to close TUN device");
 			LibC.close(fd);
+			System.out.println("TUN device closed");
 		} catch (LastErrorException ex) {
 			throw new IOException("Error closing TUN device: " + ex.getMessage(), ex);
 		}
