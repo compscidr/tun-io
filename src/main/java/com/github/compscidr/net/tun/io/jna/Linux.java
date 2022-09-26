@@ -9,7 +9,9 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Structure;
 
+import java.io.FileDescriptor;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Linux implementation for opening/creating a TUN device based using the
@@ -36,7 +38,6 @@ public class Linux {
 		int fd = LibC.open("/dev/net/tun", O_RDWR);
 		IfReq ifReq = new IfReq(name, (short) (IfReq.FLAGS_IFF_TUN | IfReq.FLAGS_IFF_NO_PI));
 		LibC.ioctl(fd, TUNSETIFF, ifReq);
-		LibC.fnctl(fd, IfReq.F_SETFL, IfReq.FNDELAY);
 		return new FdAndName(fd, Native.toString(ifReq.name, StandardCharsets.US_ASCII));
 	}
 
@@ -49,8 +50,6 @@ public class Linux {
 		public static final int LENGTH = 0x28;
 		public static final short FLAGS_IFF_TUN = 0x0001;  // from if_tun.h
 		public static final short FLAGS_IFF_NO_PI = 0x1000;  // from if_tun.h
-		public static final short F_SETFL = 4;  // from fcntl-linux.h
-		public static final short FNDELAY = 0x0004;  // from fcntl-linux.h
 
 		public byte[] name = new byte[0x10];
 		public short flags;

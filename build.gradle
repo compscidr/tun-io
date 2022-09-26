@@ -10,6 +10,7 @@ repositories {
 
 dependencies {
 	implementation 'net.java.dev.jna:jna:5.3.1'
+	implementation 'com.github.jnr:jnr-enxio:0.32.5'
 	testImplementation 'org.zeroturnaround:zt-exec:1.10'
 	testImplementation 'org.slf4j:slf4j-jdk14:1.7.26'
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'

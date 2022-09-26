@@ -15,6 +15,12 @@ import com.github.compscidr.net.tun.io.jna.Linux;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.concurrent.LinkedBlockingDeque;
+
+import jnr.enxio.channels.NativeSelectorProvider;
+import jnr.enxio.channels.NativeSocketChannel;
 
 /**
  * Open/create a TUN device on macOS and Linux.
@@ -38,18 +44,30 @@ import java.nio.ByteOrder;
  * <p>See <a href="https://github.com/isotes/tun-io-example" target="_top">tun-io-example</a> for a full-fledged
  * example.</p>
  */
+
 public class TunDevice implements AutoCloseable {
+	protected final Selector selector;
 	volatile private static boolean isOpen = false;
+	private LinkedBlockingDeque<ByteBuffer> packetQueue = new LinkedBlockingDeque<ByteBuffer>();
 	private static final int DEFAULT_MTU = 2048;
 	private static final byte[] IPV4_HEADER_DARWIN = new byte[]{0, 0, 0, 2};  // AF_INET in socket.h
 	private static final byte[] IPV6_HEADER_DARWIN = new byte[]{0, 0, 0, 30};  // AF_INET6 in socket.h
 	/* package */ final int fd;
+	final NativeSocketChannel channel;
 	private final String name;
-	/* package */ NativeLong readMtu = new NativeLong(DEFAULT_MTU);
+	private final Thread loopThread;
+	/* package */ static NativeLong readMtu = new NativeLong(DEFAULT_MTU);
+	private static volatile int availableForRead = 0;
+	private static ByteBuffer inbuf = ByteBuffer.allocate(readMtu.intValue());
 
-	/* package */ TunDevice(String name, int fd) {
+	/* package */ TunDevice(String name, int fd) throws IOException {
+		selector = NativeSelectorProvider.getInstance().openSelector();
 		this.name = name;
 		this.fd = fd;
+		channel = new NativeSocketChannel(fd);
+		channel.configureBlocking(false);
+		channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+		loopThread = new Thread(this::loop);
 	}
 
 	/**
@@ -108,6 +126,54 @@ public class TunDevice implements AutoCloseable {
 		}
 	}
 
+	private void try_write() throws IOException {
+		try {
+			ByteBuffer packet = packetQueue.take();
+			LibC.write(fd, packet, new NativeLong(packet.remaining()));
+		} catch(InterruptedException ex) {
+			System.out.println("Interrupted, probably shutting down");
+		} catch (LastErrorException ex) {
+			System.out.println("Writing to TUN device " + getName() + " failed: " + ex.getMessage() + " " + ex);
+		}
+	}
+
+	private void try_read() throws IOException {
+		System.out.println("Waiting for libc read");
+		if (availableForRead == 0) {
+			availableForRead = LibC.read(fd, inbuf, readMtu);
+			inbuf.limit(availableForRead);
+		}
+	}
+
+	private static ByteBuffer read_blocking() throws InterruptedException {
+		while (availableForRead == 0) {
+			Thread.sleep(10);
+		}
+		ByteBuffer packet = ByteBuffer.allocate(availableForRead);
+		packet.put(inbuf);
+		packet.rewind();
+		availableForRead = 0;
+		return packet;
+	}
+
+	private void loop() {
+		while (isOpen) {
+			try {
+				selector.select();
+				for (SelectionKey key : selector.selectedKeys()) {
+					if (key.isReadable()) {
+						try_read();
+					}
+					else if(key.isWritable()) {
+						try_write();
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	public String getName() {
 		return name;
 	}
@@ -128,30 +194,28 @@ public class TunDevice implements AutoCloseable {
 	 * @param readMtu the new buffer size when calling the read() methods
 	 * @return the TunDevice
 	 */
-	public TunDevice setReadMtu(int readMtu) {
+	public void setReadMtu(int readMtu) {
 		this.readMtu = new NativeLong(readMtu);
-		return this;
+		ByteBuffer.allocate(readMtu);
+		availableForRead = 0;
 	}
 
-	protected Packet read(int limitIpVersion) throws IOException {
+	protected Packet read(int limitIpVersion) throws IOException, InterruptedException {
 		try {
 			while (isOpen) {
-				ByteBuffer inbuf = ByteBuffer.allocate(readMtu.intValue());
-				System.out.println("Waiting for libc read");
-				int n = LibC.read(fd, inbuf, readMtu);
-				if (n < 4) {
+				ByteBuffer recv = read_blocking();
+				if (recv.limit() < 4) {
 					System.out.println("Didn't get >= 4 bytes, skipping");
 					continue;
 				}
-				int version = Byte.toUnsignedInt(inbuf.get(0)) >> 4;
+				int version = Byte.toUnsignedInt(recv.get(0)) >> 4;
 				if (version != limitIpVersion && limitIpVersion != 0) {
 					System.out.println("Didn't get expected IP version, skipping");
 					continue;
 				}
 				System.out.println("Got a good packet");
-				inbuf.order(ByteOrder.BIG_ENDIAN);
-				inbuf.limit(n);
-				return new Packet(inbuf);
+				recv.order(ByteOrder.BIG_ENDIAN);
+				return new Packet(recv);
 			}
 		} catch (LastErrorException ex) {
 			throw new IOException("Reading from TUN device " + getName() + " failed: " + ex.getMessage(), ex);
@@ -159,38 +223,28 @@ public class TunDevice implements AutoCloseable {
 		throw new IOException("TUN device " + getName() + " closed");
 	}
 
-	public Packet read() throws IOException {
+	public Packet read() throws IOException, InterruptedException {
 		return read(0);
 	}
 
-	public Packet readIPv4Packet() throws IOException {
+	public Packet readIPv4Packet() throws IOException, InterruptedException {
 		return read(4);
 	}
 
-	public Packet readIPv6Packet() throws IOException {
+	public Packet readIPv6Packet() throws IOException, InterruptedException {
 		return read(6);
 	}
 
-	public TunDevice write(Packet packet) throws IOException {
-		return write(packet.packet);
+	public void write(Packet packet) throws InterruptedException {
+		write(packet.bytes());
 	}
 
-	public TunDevice write(ByteBuffer packet) throws IOException {
-		try {
-			LibC.write(fd, packet, new NativeLong(packet.remaining()));
-		} catch (LastErrorException ex) {
-			throw new IOException("Writing to TUN device " + getName() + " failed: " + ex.getMessage(), ex);
-		}
-		return this;
+	public void write(ByteBuffer packet) throws InterruptedException {
+		packetQueue.put(packet);
 	}
 
-	public TunDevice write(byte[] packet) throws IOException {
-		try {
-			LibC.write(fd, packet, new NativeLong(packet.length));
-		} catch (LastErrorException ex) {
-			throw new IOException("Writing to TUN device " + getName() + " failed: " + ex.getMessage(), ex);
-		}
-		return this;
+	public void write(byte[] packet) throws InterruptedException {
+		write(ByteBuffer.wrap(packet));
 	}
 
 	public Packet newPacket(int capacity) {
@@ -202,8 +256,7 @@ public class TunDevice implements AutoCloseable {
 		private final byte[] ipv6Header;
 		private final int headerSize;
 
-
-		/* package */ TunDeviceWithHeader(String name, int fd, byte[] ipv4Header, byte[] ipv6Header) {
+		/* package */ TunDeviceWithHeader(String name, int fd, byte[] ipv4Header, byte[] ipv6Header) throws IOException {
 			super(name, fd);
 			this.ipv4Header = ipv4Header;
 			this.ipv6Header = ipv6Header;
@@ -211,27 +264,25 @@ public class TunDevice implements AutoCloseable {
 		}
 
 		@Override
-		protected Packet read(int limitIpVersion) throws IOException {
+		protected Packet read(int limitIpVersion) throws IOException, InterruptedException {
 			try {
 				while (isOpen) {
-					ByteBuffer inbuf = ByteBuffer.allocate(headerSize + readMtu.intValue());
-					System.out.println("Waiting for libc read");
-					int n = LibC.read(fd, inbuf, readMtu);
-					if (n < 4) {
+					ByteBuffer recv = read_blocking();
+					if (recv.limit() < 4) {
 						System.out.println("Didn't get >= 4 bytes, skipping");
 						continue;
 					}
-					int version = Byte.toUnsignedInt(inbuf.get(headerSize)) >> 4;
+					int version = Byte.toUnsignedInt(recv.get(headerSize)) >> 4;
 					if (version != limitIpVersion && limitIpVersion != 0) {
 						System.out.println("Didn't get expected IP version, skipping");
 						continue;
 					}
 					System.out.println("Got a good packet");
 					// slice without the header but with the full capacity allowing the later use of the complete buffer
-					inbuf.position(headerSize);
-					ByteBuffer packetBuf = inbuf.slice();
+					recv.position(headerSize);
+					ByteBuffer packetBuf = recv.slice();
 					packetBuf.order(ByteOrder.BIG_ENDIAN);  // default to network byte order
-					packetBuf.limit(n - headerSize);
+					packetBuf.limit(recv.limit() - headerSize);
 					return new Packet(packetBuf);
 				}
 			} catch (LastErrorException ex) {
@@ -241,21 +292,21 @@ public class TunDevice implements AutoCloseable {
 		}
 
 		@Override
-		public TunDevice write(ByteBuffer packet) throws IOException {
+		public void write(ByteBuffer packet) throws InterruptedException {
 			byte[] bytes = new byte[headerSize + packet.remaining()];
 			byte[] header = Byte.toUnsignedInt(packet.get(0)) >> 4 == 6 ? ipv6Header : ipv4Header;
 			System.arraycopy(header, 0, bytes, 0, header.length);
 			packet.slice().get(bytes, headerSize, packet.remaining());
-			return super.write(bytes);
+			super.write(bytes);
 		}
 
 		@Override
-		public TunDevice write(byte[] packet) throws IOException {
+		public void write(byte[] packet) throws InterruptedException {
 			byte[] bytes = new byte[headerSize + packet.length];
 			byte[] header = Byte.toUnsignedInt(packet[0]) >> 4 == 6 ? ipv6Header : ipv4Header;
 			System.arraycopy(header, 0, bytes, 0, header.length);
 			System.arraycopy(packet, 0, bytes, headerSize, packet.length);
-			return super.write(bytes);
+			super.write(bytes);
 		}
 
 	}
