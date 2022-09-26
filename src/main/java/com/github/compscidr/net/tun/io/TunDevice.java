@@ -146,14 +146,14 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	private void try_read() throws IOException {
-		System.out.println("Waiting for libc read");
 		if (availableForRead == 0) {
+			System.out.println("Waiting for libc read");
 			availableForRead = LibC.read(fd, inbuf, readMtu);
 			inbuf.limit(availableForRead);
 			System.out.println("libc read done");
 			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		} else {
-			System.out.println("Waiting for someone to read the existing buffer, not reading now");
+			//System.out.println("Waiting for someone to read the existing buffer, not reading now");
 			channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		}
 	}
