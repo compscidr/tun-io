@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package io.github.isotes.net.tun.io;
+package com.github.compscidr.net.tun.io;
 
 import java.nio.ByteBuffer;
 

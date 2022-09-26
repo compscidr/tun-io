@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package io.github.isotes.net.tun.io;
+package com.github.compscidr.net.tun.io;
 
 import com.sun.jna.LastErrorException;
 import com.sun.jna.NativeLong;
-import io.github.isotes.net.tun.io.jna.Darwin;
-import io.github.isotes.net.tun.io.jna.FdAndName;
-import io.github.isotes.net.tun.io.jna.LibC;
-import io.github.isotes.net.tun.io.jna.Linux;
+import com.github.compscidr.net.tun.io.jna.Darwin;
+import com.github.compscidr.net.tun.io.jna.FdAndName;
+import com.github.compscidr.net.tun.io.jna.LibC;
+import com.github.compscidr.net.tun.io.jna.Linux;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -15,6 +15,6 @@
  * <p>Apart from JNA, the library has no dependencies and has been successfully tested on macOS, Linux on a PC (Ubuntu
  * 18.04 64-bit), and Linux on a Raspberry PI 3 with Raspbian 9 (based on Debian Stretch).</p>
  *
- * <p>See {@link io.github.isotes.net.tun.io.TunDevice} for more information.</p>
+ * <p>See {@link com.github.compscidr.net.tun.io.TunDevice} for more information.</p>
  */
-package io.github.isotes.net.tun.io;
+package com.github.compscidr.net.tun.io;

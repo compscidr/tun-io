@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package io.github.isotes.net.tun.io.jna;
+package com.github.compscidr.net.tun.io.jna;
 
 public class FdAndName {
 	public final int fd;
