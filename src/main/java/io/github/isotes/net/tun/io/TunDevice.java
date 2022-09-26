@@ -60,7 +60,9 @@ public class TunDevice implements AutoCloseable {
 	 * @throws IOException if one of the system call fails
 	 */
 	public static TunDevice open() throws IOException {
-		return open(null);
+		TunDevice device = open(null);
+		isOpen = true;
+		return device;
 	}
 
 	/**
@@ -92,10 +94,14 @@ public class TunDevice implements AutoCloseable {
 		try {
 			if (System.getProperty("os.name").toLowerCase().contains("mac")) {
 				FdAndName fdAndName = Darwin.open(name);
-				return new TunDeviceWithHeader(fdAndName.name, fdAndName.fd, IPV4_HEADER_DARWIN, IPV6_HEADER_DARWIN);
+				TunDevice device = new TunDeviceWithHeader(fdAndName.name, fdAndName.fd, IPV4_HEADER_DARWIN, IPV6_HEADER_DARWIN);
+				isOpen = true;
+				return device;
 			} else {
 				FdAndName fdAndName = Linux.open(name);
-				return new TunDevice(fdAndName.name, fdAndName.fd);
+				TunDevice device = new TunDevice(fdAndName.name, fdAndName.fd);
+				isOpen = true;
+				return device;
 			}
 		} catch (LastErrorException ex) {
 			throw new IOException("Error opening TUN device: " + ex.getMessage(), ex);
