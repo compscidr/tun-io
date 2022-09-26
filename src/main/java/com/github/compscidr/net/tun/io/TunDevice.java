@@ -68,6 +68,7 @@ public class TunDevice implements AutoCloseable {
 		channel.configureBlocking(false);
 		channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		loopThread = new Thread(this::loop);
+		loopThread.start();
 	}
 
 	/**
@@ -177,7 +178,7 @@ public class TunDevice implements AutoCloseable {
 					}
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.out.println("IO Exception on TUN loop, probably shutting down: " + e);
 			}
 		}
 	}
@@ -187,13 +188,19 @@ public class TunDevice implements AutoCloseable {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() throws IOException, InterruptedException {
 		isOpen = false;
+		selector.close();
 		try {
 			LibC.close(fd);
 		} catch (LastErrorException ex) {
 			throw new IOException("Error closing TUN device: " + ex.getMessage(), ex);
 		}
+		if (loopThread.isAlive()) {
+			System.out.println("Waiting for TUN loop thread to finish");
+			loopThread.join();
+		}
+		System.out.println("TUN Loop thread finished");
 	}
 
 	/**
