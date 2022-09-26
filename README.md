@@ -1,8 +1,13 @@
-# tun-io  [![License](https://img.shields.io/github/license/isotes/tun-io)](LICENSE)  [![Build Status](https://travis-ci.com/isotes/tun-io.svg?branch=master)](https://travis-ci.com/isotes/tun-io)  [![Javadoc](https://img.shields.io/badge/docs-javadoc-blue)](https://isotes.github.io/javadoc/tun-io-1.0.0/)  [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fisotes%2Ftun-io%2Fmaven-metadata.xml)](https://search.maven.org/search?q=g:io.github.isotes%20a:tun-io)
+# tun-io  
+[![License](https://img.shields.io/github/license/isotes/tun-io)](LICENSE)  
+[![](https://jitpack.io/v/compscidr/tun-io.svg)](https://jitpack.io/#compscidr/tun-io)
+[![Javadoc](https://img.shields.io/badge/docs-javadoc-blue)](https://isotes.github.io/javadoc/tun-io-1.0.0/)
 JNA based access to TUN devices on Linux and macOS.
 
 ## Use
-See [Maven Central](https://search.maven.org/search?q=g:io.github.isotes%20a:tun-io) for the current Maven coordinates. Additionally, you have to declare a dependency on [JNA](https://search.maven.org/search?q=g:net.java.dev.jna%20a:jna). The library requires Java 8 but should also work with newer versions.
+```
+implementation 'com.github.compscidr:tun-io:<tag>'
+```
 
 ## API
 The main entry point is the [TunDevice](src/main/java/io/github/isotes/net/tun/io/TunDevice.java) class which contains several `open()` methods to open or create a TUN device. Afterwards, it is possible to read/write IPv4 and IPv6 packets. The following shows a minimal code snippet while a full-fledged example can be found in the [tun-io-example project](https://github.com/isotes/tun-io-example) and more information is in the [API documentation](https://isotes.github.io/javadoc/tun-io-1.0.0/).
