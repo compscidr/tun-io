@@ -34,7 +34,7 @@ public class Linux {
 		}
 
 		int fd = LibC.open("/dev/net/tun", O_RDWR);
-		IfReq ifReq = new IfReq(name, (short) (IfReq.FLAGS_IFF_TUN | IfReq.FLAGS_IFF_NO_PI));
+		IfReq ifReq = new IfReq(name, (short) (IfReq.FLAGS_IFF_TUN | IfReq.FLAGS_IFF_NO_PI | IfReq.O_NONBLOCK));
 		LibC.ioctl(fd, TUNSETIFF, ifReq);
 		return new FdAndName(fd, Native.toString(ifReq.name, StandardCharsets.US_ASCII));
 	}
@@ -48,6 +48,7 @@ public class Linux {
 		public static final int LENGTH = 0x28;
 		public static final short FLAGS_IFF_TUN = 0x0001;  // from if_tun.h
 		public static final short FLAGS_IFF_NO_PI = 0x1000;  // from if_tun.h
+		public static final short O_NONBLOCK = 0x0800;  // from fcntl-linux.h
 
 		public byte[] name = new byte[0x10];
 		public short flags;

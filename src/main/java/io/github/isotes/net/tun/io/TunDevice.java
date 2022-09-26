@@ -39,6 +39,7 @@ import java.nio.ByteOrder;
  * example.</p>
  */
 public class TunDevice implements AutoCloseable {
+	volatile private static boolean isOpen = false;
 	private static final int DEFAULT_MTU = 2048;
 	private static final byte[] IPV4_HEADER_DARWIN = new byte[]{0, 0, 0, 2};  // AF_INET in socket.h
 	private static final byte[] IPV6_HEADER_DARWIN = new byte[]{0, 0, 0, 30};  // AF_INET6 in socket.h
@@ -107,6 +108,7 @@ public class TunDevice implements AutoCloseable {
 
 	@Override
 	public void close() throws IOException {
+		isOpen = false;
 		try {
 			LibC.close(fd);
 		} catch (LastErrorException ex) {
@@ -127,9 +129,12 @@ public class TunDevice implements AutoCloseable {
 
 	protected Packet read(int limitIpVersion) throws IOException {
 		try {
-			while (true) {
+			while (isOpen) {
 				ByteBuffer inbuf = ByteBuffer.allocate(readMtu.intValue());
 				int n = LibC.read(fd, inbuf, readMtu);
+				if (n < 4) {
+					continue;
+				}
 				int version = Byte.toUnsignedInt(inbuf.get(0)) >> 4;
 				if (version != limitIpVersion && limitIpVersion != 0) {
 					continue;
@@ -141,6 +146,7 @@ public class TunDevice implements AutoCloseable {
 		} catch (LastErrorException ex) {
 			throw new IOException("Reading from TUN device " + getName() + " failed: " + ex.getMessage(), ex);
 		}
+		throw new IOException("TUN device " + getName() + " closed");
 	}
 
 	public Packet read() throws IOException {
@@ -197,9 +203,12 @@ public class TunDevice implements AutoCloseable {
 		@Override
 		protected Packet read(int limitIpVersion) throws IOException {
 			try {
-				while (true) {
+				while (isOpen) {
 					ByteBuffer inbuf = ByteBuffer.allocate(headerSize + readMtu.intValue());
 					int n = LibC.read(fd, inbuf, readMtu);
+					if (n < 4) {
+						continue;
+					}
 					int version = Byte.toUnsignedInt(inbuf.get(headerSize)) >> 4;
 					if (version != limitIpVersion && limitIpVersion != 0) {
 						continue;
@@ -214,6 +223,7 @@ public class TunDevice implements AutoCloseable {
 			} catch (LastErrorException ex) {
 				throw new IOException("Reading from TUN device " + getName() + " failed: " + ex.getMessage(), ex);
 			}
+			throw new IOException("TUN device " + getName() + " closed");
 		}
 
 		@Override
